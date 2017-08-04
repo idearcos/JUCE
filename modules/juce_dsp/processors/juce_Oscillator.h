@@ -23,16 +23,18 @@
 
   ==============================================================================
 */
+
+
 /**
- Applies a gain to audio samples as single samples or AudioBlocks.
- */
+    Generates a signal based on a user-supplied function.
+*/
 template <typename SampleType>
 class Oscillator
 {
 public:
     /** The NumericType is the underlying primitive type used by the SampleType (which
         could be either a primitive or vector)
-     */
+    */
     using NumericType = typename SampleTypeHelpers::ElementType<SampleType>::Type;
 
     /** Creates an oscillator with a periodic input function (-pi..pi).
@@ -54,10 +56,10 @@ public:
     }
 
     //==============================================================================
-    /** Applies a new gain as a linear value. */
+    /** Sets the frequency of the oscillator. */
     void setFrequency (NumericType newGain) noexcept             { frequency.setValue (newGain); }
 
-    /** Returns the current gain as a linear value. */
+    /** Returns the current frequency of the oscillator. */
     NumericType getFrequency() const noexcept                    { return frequency.getTargetValue(); }
 
     //==============================================================================
@@ -70,7 +72,7 @@ public:
         reset();
     }
 
-    /** Resets the internal state of the gain */
+    /** Resets the internal state of the oscillator */
     void reset() noexcept
     {
         pos = 0.0;
