@@ -36,6 +36,10 @@ namespace juce
 
 using namespace BlocksProtocol;
 
+/** Manages the configuration of blocks
+
+    @tags{Blocks}
+*/
 struct BlockConfigManager
 {
     void setDeviceIndex (TopologyIndex newDeviceIndex)                       { deviceIndex = newDeviceIndex; }
@@ -52,6 +56,7 @@ struct BlockConfigManager
 
     static constexpr uint32 numConfigItems = 61;
 
+    /** Structure describing a configuration */
     struct ConfigDescription
     {
         ConfigItemId item;
@@ -93,7 +98,7 @@ struct BlockConfigManager
         { fixedVelocityValue,   127,    1,      127,    false,  "Fixed Velocity Value", ConfigType::integer,    {},               "5D Touch" },
         { pianoMode,            0,      0,      1,      false,  "Piano Mode",           ConfigType::boolean,    {},               "Play mode" },
         { glideLock,            0,      0,      127,    false,  "Glide Rate",           ConfigType::integer,    {},               "Play mode" },
-        { glideLockEnable,      0,      0,      1,      false,  "Glidelock Enable",     ConfigType::boolean,    {},               "Play mode" },
+        { glideLockEnable,      0,      0,      1,      false,  "Glide Lock Enable",    ConfigType::boolean,    {},               "Play mode" },
         { mode,                 4,      1,      5,      false,  "Mode",                 ConfigType::integer,    {},               "Play mode" },
         { volume,               100,    0,      127,    false,  "Volume",               ConfigType::integer,    {},               "Play mode" },
         { scale,                0,      0,      18,     false,  "Scale",                ConfigType::integer,    {},               "Play mode" }, // NOTE: Should be options

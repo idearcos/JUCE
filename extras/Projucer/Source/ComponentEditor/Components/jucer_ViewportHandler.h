@@ -148,7 +148,7 @@ public:
                 if (filename.isNotEmpty())
                     file = code.document->getCppFile().getSiblingFile (filename);
 
-                ScopedPointer<JucerDocument> doc (JucerDocument::createForCppFile (nullptr, file));
+                std::unique_ptr<JucerDocument> doc (JucerDocument::createForCppFile (nullptr, file));
 
                 if (doc != nullptr)
                 {
@@ -285,7 +285,7 @@ private:
 
         void paint (Graphics& g) override
         {
-            g.fillCheckerBoard (getLocalBounds(), 50, 50,
+            g.fillCheckerBoard (getLocalBounds().toFloat(), 50.0f, 50.0f,
                                 Colours::lightgrey.withAlpha (0.5f),
                                 Colours::darkgrey.withAlpha (0.5f));
         }

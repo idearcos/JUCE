@@ -75,7 +75,7 @@ struct RuleBasedTopologySource::Internal  : public TopologySource::Listener,
         if (topology != newTopology)
         {
             topology = newTopology;
-            owner.listeners.call (&TopologySource::Listener::topologyChanged);
+            owner.listeners.call ([] (TopologySource::Listener& l) { l.topologyChanged(); });
         }
     }
 
@@ -90,7 +90,7 @@ struct RuleBasedTopologySource::Internal  : public TopologySource::Listener,
 
 RuleBasedTopologySource::RuleBasedTopologySource (TopologySource& d)
 {
-    internal = new Internal (*this, d);
+    internal.reset (new Internal (*this, d));
 }
 
 RuleBasedTopologySource::~RuleBasedTopologySource()

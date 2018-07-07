@@ -32,10 +32,10 @@
 ComponentDocument::ComponentDocument (SourceCodeDocument* c)
     : JucerDocument (c)
 {
-    components = new ComponentLayout();
+    components.reset (new ComponentLayout());
     components->setDocument (this);
 
-    backgroundGraphics = new PaintRoutine();
+    backgroundGraphics.reset (new PaintRoutine());
     backgroundGraphics->setDocument (this);
 }
 
@@ -55,7 +55,7 @@ JucerDocument* ComponentDocument::createCopy()
 
     newOne->resources = resources;
 
-    ScopedPointer<XmlElement> xml (createXml());
+    std::unique_ptr<XmlElement> xml (createXml());
     newOne->loadFromXml (*xml);
 
     return newOne;

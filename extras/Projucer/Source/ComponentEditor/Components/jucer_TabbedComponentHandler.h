@@ -179,7 +179,7 @@ public:
             {
                 File jucerCpp = code.document->getCppFile().getSiblingFile (getTabJucerFile (t, i));
 
-                ScopedPointer<JucerDocument> doc (JucerDocument::createForCppFile (nullptr, jucerCpp));
+                std::unique_ptr<JucerDocument> doc (JucerDocument::createForCppFile (nullptr, jucerCpp));
 
                 if (doc != nullptr)
                 {
@@ -356,7 +356,7 @@ private:
         void paint (Graphics& g) override
         {
             if (jucerComp == nullptr)
-                g.fillCheckerBoard (getLocalBounds(), 50, 50,
+                g.fillCheckerBoard (getLocalBounds().toFloat(), 50.0f, 50.0f,
                                     Colour::greyLevel (0.9f).withAlpha (0.4f),
                                     Colour::greyLevel (0.8f).withAlpha (0.4f));
         }
@@ -378,18 +378,18 @@ private:
                     || jucerComp->getOwnerDocument() == nullptr
                     || jucerComp->getFilename() != jucerComponentFile)
                 {
-                    jucerComp = nullptr;
+                    jucerComp.reset();
 
-                    jucerComp = new TestComponent (ComponentTypeHandler::findParentDocument (this), 0, false);
+                    jucerComp.reset (new TestComponent (ComponentTypeHandler::findParentDocument (this), 0, false));
                     jucerComp->setFilename (jucerComponentFile);
                     jucerComp->setToInitialSize();
 
-                    addAndMakeVisible (jucerComp);
+                    addAndMakeVisible (jucerComp.get());
                 }
             }
             else
             {
-                jucerComp = nullptr;
+                jucerComp.reset();
             }
 
             resized();
@@ -403,7 +403,7 @@ private:
         bool isUsingJucerComp;
         String contentClassName, constructorParams;
         String jucerComponentFile;
-        ScopedPointer<TestComponent> jucerComp;
+        std::unique_ptr<TestComponent> jucerComp;
     };
 
     //==============================================================================
@@ -698,7 +698,7 @@ private:
                 : ComponentUndoableAction<TabbedComponent> (comp, l),
                   indexToRemove (indexToRemove_)
             {
-                previousState = getTabState (comp, indexToRemove);
+                previousState.reset (getTabState (comp, indexToRemove));
             }
 
             bool perform()
@@ -723,7 +723,7 @@ private:
 
         private:
             int indexToRemove;
-            ScopedPointer<XmlElement> previousState;
+            std::unique_ptr<XmlElement> previousState;
         };
     };
 
@@ -1164,7 +1164,7 @@ private:
             {
                 showCorrectTab();
 
-                ScopedPointer<XmlElement> state (getTabState (getComponent(), from));
+                std::unique_ptr<XmlElement> state (getTabState (getComponent(), from));
 
                 getComponent()->removeTab (from);
                 addNewTab (getComponent(), to);

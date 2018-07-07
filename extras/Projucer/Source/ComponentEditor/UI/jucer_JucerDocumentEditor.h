@@ -41,7 +41,7 @@ public:
     JucerDocumentEditor (JucerDocument* const document);
     ~JucerDocumentEditor();
 
-    JucerDocument* getDocument() const noexcept         { return document; }
+    JucerDocument* getDocument() const noexcept         { return document.get(); }
 
     void refreshPropertiesPanel() const;
     void updateTabs();
@@ -69,7 +69,7 @@ public:
     static JucerDocumentEditor* getActiveDocumentHolder();
 
 private:
-    ScopedPointer<JucerDocument> document;
+    std::unique_ptr<JucerDocument> document;
     ComponentLayoutPanel* compLayoutPanel = nullptr;
 
     struct JucerDocumentTabs  : public TabbedComponent

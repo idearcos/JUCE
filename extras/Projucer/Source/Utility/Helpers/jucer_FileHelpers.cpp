@@ -64,7 +64,7 @@ namespace FileHelpers
 
     int64 calculateFileHashCode (const File& file)
     {
-        ScopedPointer<FileInputStream> stream (file.createInputStream());
+        std::unique_ptr<FileInputStream> stream (file.createInputStream());
         return stream != nullptr ? calculateStreamHashCode (*stream) : 0;
     }
 
@@ -122,18 +122,6 @@ namespace FileHelpers
                 || path.startsWithChar ('~')
                 || (CharacterFunctions::isLetter (path[0]) && path[1] == ':')
                 || path.startsWithIgnoreCase ("smb:");
-    }
-
-    String appendPath (const String& path, const String& subpath)
-    {
-        if (isAbsolutePath (subpath))
-            return unixStylePath (subpath);
-
-        String path1 (unixStylePath (path));
-        if (! path1.endsWithChar ('/'))
-            path1 << '/';
-
-        return path1 + unixStylePath (subpath);
     }
 
     bool shouldPathsBeRelative (String path1, String path2)

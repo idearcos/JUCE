@@ -114,7 +114,7 @@ struct KeyFileUtils
         RSAKey key (rsaPublicKey);
         jassert (key.isValid());
 
-        ScopedPointer<XmlElement> xml;
+        std::unique_ptr<XmlElement> xml;
 
         if (! val.isZero())
         {
@@ -123,7 +123,7 @@ struct KeyFileUtils
             const MemoryBlock mb (val.toMemoryBlock());
 
             if (CharPointer_UTF8::isValidString (static_cast<const char*> (mb.getData()), (int) mb.getSize()))
-                xml = XmlDocument::parse (mb.toString());
+                xml.reset (XmlDocument::parse (mb.toString()));
         }
 
         return xml != nullptr ? *xml : XmlElement("key");
@@ -263,7 +263,7 @@ void OnlineUnlockStatus::save()
     MemoryOutputStream mo;
 
     {
-        GZIPCompressorOutputStream gzipStream (&mo, 9);
+        GZIPCompressorOutputStream gzipStream (mo, 9);
         status.writeToStream (gzipStream);
     }
 
@@ -327,6 +327,10 @@ StringArray OnlineUnlockStatus::getLocalMachineIDs()
     return MachineIDUtilities::getLocalMachineIDs();
 }
 
+void OnlineUnlockStatus::userCancelled()
+{
+}
+
 void OnlineUnlockStatus::setUserEmail (const String& usernameOrEmail)
 {
     status.setProperty (userNameProp, usernameOrEmail, nullptr);
@@ -374,7 +378,7 @@ bool OnlineUnlockStatus::applyKeyFile (String keyFileContent)
 
 static bool canConnectToWebsite (const URL& url)
 {
-    ScopedPointer<InputStream> in (url.createInputStream (false, nullptr, nullptr, String(), 2000, nullptr));
+    std::unique_ptr<InputStream> in (url.createInputStream (false, nullptr, nullptr, String(), 2000, nullptr));
     return in != nullptr;
 }
 
@@ -450,7 +454,7 @@ OnlineUnlockStatus::UnlockResult OnlineUnlockStatus::attemptWebserverUnlock (con
 
     DBG ("Reply from server: " << reply);
 
-    ScopedPointer<XmlElement> xml (XmlDocument::parse (reply));
+    std::unique_ptr<XmlElement> xml (XmlDocument::parse (reply));
 
     if (xml != nullptr)
         return handleXmlReply (*xml);

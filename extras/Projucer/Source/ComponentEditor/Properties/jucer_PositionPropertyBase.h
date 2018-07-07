@@ -34,8 +34,7 @@
     Base class for a property that edits the x, y, w, or h of a PositionedRectangle.
 */
 class PositionPropertyBase  : public PropertyComponent,
-                              protected ChangeListener,
-                              private Button::Listener
+                              protected ChangeListener
 {
 public:
     enum ComponentPositionDimension
@@ -61,11 +60,16 @@ public:
           allowRelativeOptions (allowRelativeOptions_)
     {
         addAndMakeVisible (button);
-        button.addListener (this);
         button.setTriggeredOnMouseDown (true);
         button.setConnectedEdges (TextButton::ConnectedOnLeft | TextButton::ConnectedOnRight);
+        button.onClick = [this]
+        {
+            if (showMenu (layout))
+                refresh(); // (to clear the text editor if it's got focus)
+        };
 
-        addAndMakeVisible (textEditor = new PositionPropLabel (*this));
+        textEditor.reset (new PositionPropLabel (*this));
+        addAndMakeVisible (textEditor.get());
     }
 
     String getText() const
@@ -390,12 +394,6 @@ public:
         textEditor->setText (getText(), dontSendNotification);
     }
 
-    void buttonClicked (Button*)
-    {
-        if (showMenu (layout))
-            refresh(); // (to clear the text editor if it's got focus)
-    }
-
     void textWasEdited()
     {
         const String newText (textEditor->getText());
@@ -443,7 +441,7 @@ protected:
     };
 
     ComponentLayout* layout;
-    ScopedPointer<PositionPropLabel> textEditor;
+    std::unique_ptr<PositionPropLabel> textEditor;
     TextButton button;
 
     Component* component;

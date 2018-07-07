@@ -28,6 +28,11 @@
 
 
 //==============================================================================
+const char* getPreferredLinefeed();
+String joinLinesIntoSourceFile (StringArray& lines);
+
+String trimCommentCharsFromStartOfLine (const String& line);
+
 String hexString8Digits (int value);
 
 String createAlphaNumericUID();
@@ -53,6 +58,17 @@ void addPlistDictionaryKeyInt (XmlElement* xml, const String& key, int value);
 
 bool fileNeedsCppSyntaxHighlighting (const File& file);
 
+StringArray getJUCEModules() noexcept;
+bool isJUCEModule (const String& moduleID) noexcept;
+
+StringArray getModulesRequiredForConsole() noexcept;
+StringArray getModulesRequiredForComponent() noexcept;
+StringArray getModulesRequiredForAudioProcessor() noexcept;
+
+bool isPIPFile (const File&) noexcept;
+
+bool isValidJUCEExamplesDirectory (const File&) noexcept;
+
 //==============================================================================
 int indexOfLineStartingWith (const StringArray& lines, const String& text, int startIndex);
 
@@ -73,6 +89,12 @@ struct PropertyListBuilder
     }
 
     void addSearchPathProperty (const Value& value, const String& name, const String& mainHelpText)
+    {
+        add (new TextPropertyComponent (value, name, 16384, true),
+             mainHelpText + " Use semi-colons or new-lines to separate multiple paths.");
+    }
+
+    void addSearchPathProperty (ValueWithDefault& value, const String& name, const String& mainHelpText)
     {
         add (new TextPropertyComponent (value, name, 16384, true),
              mainHelpText + " Use semi-colons or new-lines to separate multiple paths.");

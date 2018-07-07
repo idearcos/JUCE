@@ -47,6 +47,8 @@ StoredSettings::StoredSettings()
 {
     updateOldProjectSettingsFiles();
     reload();
+    checkJUCEPaths();
+
     projectDefaults.addListener (this);
     fallbackPaths.addListener (this);
 }
@@ -109,10 +111,10 @@ void StoredSettings::updateKeyMappings()
 
     if (auto* commandManager = ProjucerApplication::getApp().commandManager.get())
     {
-        const ScopedPointer<XmlElement> keys (commandManager->getKeyMappings()->createXml (true));
+        const std::unique_ptr<XmlElement> keys (commandManager->getKeyMappings()->createXml (true));
 
         if (keys != nullptr)
-            getGlobalProperties().setValue ("keyMappings", keys);
+            getGlobalProperties().setValue ("keyMappings", keys.get());
     }
 }
 
@@ -130,11 +132,13 @@ void StoredSettings::reload()
     propertyFiles.clear();
     propertyFiles.add (createPropsFile ("Projucer", false));
 
-    ScopedPointer<XmlElement> projectDefaultsXml (propertyFiles.getFirst()->getXmlValue ("PROJECT_DEFAULT_SETTINGS"));
+    std::unique_ptr<XmlElement> projectDefaultsXml (propertyFiles.getFirst()->getXmlValue ("PROJECT_DEFAULT_SETTINGS"));
+
     if (projectDefaultsXml != nullptr)
         projectDefaults = ValueTree::fromXml (*projectDefaultsXml);
 
-    ScopedPointer<XmlElement> fallbackPathsXml (propertyFiles.getFirst()->getXmlValue ("FALLBACK_PATHS"));
+    std::unique_ptr<XmlElement> fallbackPathsXml (propertyFiles.getFirst()->getXmlValue ("FALLBACK_PATHS"));
+
     if (fallbackPathsXml != nullptr)
         fallbackPaths = ValueTree::fromXml (*fallbackPathsXml);
 
@@ -195,6 +199,34 @@ void StoredSettings::updateOldProjectSettingsFiles()
     }
 }
 
+void StoredSettings::checkJUCEPaths()
+{
+    auto moduleFolder = projectDefaults.getProperty (Ids::defaultJuceModulePath).toString();
+    auto juceFolder = projectDefaults.getProperty (Ids::jucePath).toString();
+
+    auto validModuleFolder = moduleFolder.isNotEmpty() && isGlobalPathValid ({}, Ids::defaultJuceModulePath, moduleFolder);
+    auto validJuceFolder = juceFolder.isNotEmpty() && isGlobalPathValid ({}, Ids::jucePath, juceFolder);
+
+    if (validModuleFolder && ! validJuceFolder)
+        projectDefaults.getPropertyAsValue (Ids::jucePath, nullptr) = File (moduleFolder).getParentDirectory().getFullPathName();
+    else if (! validModuleFolder && validJuceFolder)
+        projectDefaults.getPropertyAsValue (Ids::defaultJuceModulePath, nullptr) = File (juceFolder).getChildFile ("modules").getFullPathName();
+}
+
+bool StoredSettings::shouldAskUserToSetJUCEPath() noexcept
+{
+    if (! isGlobalPathValid ({}, Ids::jucePath, projectDefaults.getProperty (Ids::jucePath).toString())
+        && getGlobalProperties().getValue ("dontAskAboutJUCEPath", {}).isEmpty())
+        return true;
+
+    return false;
+}
+
+void StoredSettings::setDontAskAboutJUCEPathAgain() noexcept
+{
+    getGlobalProperties().setValue ("dontAskAboutJUCEPath", 1);
+}
+
 //==============================================================================
 void StoredSettings::loadSwatchColours()
 {
@@ -225,6 +257,9 @@ void StoredSettings::saveSwatchColours()
     for (auto i = 0; i < swatchColours.size(); ++i)
         props.setValue ("swatchColour" + String (i), swatchColours.getReference(i).toString());
 }
+
+StoredSettings::ColourSelectorWithSwatches::ColourSelectorWithSwatches() {}
+StoredSettings::ColourSelectorWithSwatches::~ColourSelectorWithSwatches() {}
 
 int StoredSettings::ColourSelectorWithSwatches::getNumSwatches() const
 {
@@ -268,7 +303,12 @@ Value StoredSettings::getFallbackPathForOS (const Identifier& key, DependencyPat
 
     if (v.toString().isEmpty())
     {
-        if (key == Ids::defaultJuceModulePath)
+        if (key == Ids::jucePath)
+        {
+            v = (os == TargetOS::windows ? "C:\\JUCE"
+                                         : "~/JUCE");
+        }
+        else if (key == Ids::defaultJuceModulePath)
         {
             v = (os == TargetOS::windows ? "C:\\JUCE\\modules"
                                          : "~/JUCE/modules");
@@ -292,7 +332,7 @@ Value StoredSettings::getFallbackPathForOS (const Identifier& key, DependencyPat
         else if (key == Ids::aaxPath)
         {
             if      (os == TargetOS::windows)  v = "C:\\SDKs\\AAX";
-            else if (os == TargetOS::osx)      v = "~/SDKs/AAX" ;
+            else if (os == TargetOS::osx)      v = "~/SDKs/AAX";
             else                               jassertfalse; // no AAX on this OS!
         }
         else if (key == Ids::androidSDKPath)
@@ -303,18 +343,41 @@ Value StoredSettings::getFallbackPathForOS (const Identifier& key, DependencyPat
         {
             v = "${user.home}/Library/Android/sdk/ndk-bundle";
         }
+        else if (key == Ids::clionExePath)
+        {
+            if (os == TargetOS::windows)
+            {
+              #if JUCE_WINDOWS
+                auto regValue = WindowsRegistry::getValue ("HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\Applications\\clion64.exe\\shell\\open\\command\\", {}, {});
+                auto openCmd = StringArray::fromTokens (regValue, true);
+
+                if (! openCmd.isEmpty())
+                    return Value (openCmd[0].unquoted());
+              #endif
+
+                v = "C:\\Program Files\\JetBrains\\CLion YYYY.MM.DD\\bin\\clion64.exe";
+            }
+            else if (os == TargetOS::osx)
+            {
+                v = "/Applications/CLion.app";
+            }
+            else
+            {
+                v = "${user.home}/clion/bin/clion.sh";
+            }
+        }
     }
 
     return v;
 }
 
-static bool doesSDKPathContainFile (const File& relativeTo, const String& path, const String& fileToCheckFor)
+static bool doesSDKPathContainFile (const File& relativeTo, const String& path, const String& fileToCheckFor) noexcept
 {
     auto actualPath = path.replace ("${user.home}", File::getSpecialLocation (File::userHomeDirectory).getFullPathName());
     return relativeTo.getChildFile (actualPath + "/" + fileToCheckFor).exists();
 }
 
-bool StoredSettings::isGlobalPathValid (const File& relativeTo, const Identifier& key, const String& path)
+bool StoredSettings::isGlobalPathValid (const File& relativeTo, const Identifier& key, const String& path) const noexcept
 {
     String fileToCheckFor;
 
@@ -353,6 +416,20 @@ bool StoredSettings::isGlobalPathValid (const File& relativeTo, const Identifier
     else if (key == Ids::defaultUserModulePath)
     {
         fileToCheckFor = {};
+    }
+    else if (key == Ids::clionExePath)
+    {
+       #if JUCE_MAC
+        fileToCheckFor = path.trim().endsWith (".app") ? "Contents/MacOS/clion" : "../clion";
+       #elif JUCE_WINDOWS
+        fileToCheckFor = "../clion64.exe";
+       #else
+        fileToCheckFor = "../clion.sh";
+       #endif
+    }
+    else if (key == Ids::jucePath)
+    {
+        fileToCheckFor = "ChangeList.txt";
     }
     else
     {

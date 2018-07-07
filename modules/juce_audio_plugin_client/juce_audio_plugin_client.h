@@ -35,7 +35,7 @@
 
   ID:               juce_audio_plugin_client
   vendor:           juce
-  version:          5.2.0
+  version:          5.3.2
   name:             JUCE audio plugin wrapper classes
   description:      Classes for building VST, VST3, AudioUnit, AAX and RTAS plugins.
   website:          http://www.juce.com/juce
@@ -89,6 +89,16 @@
 */
 #ifndef JUCE_USE_STUDIO_ONE_COMPATIBLE_PARAMETERS
  #define JUCE_USE_STUDIO_ONE_COMPATIBLE_PARAMETERS 1
+#endif
+
+/** Config: JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE
+
+    Enable this if you want your standalone plugin window to use kiosk mode.
+    By default, kiosk mode is enabled on iOS and Android.
+*/
+
+#ifndef JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE
+ #define JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE (JUCE_IOS || JUCE_ANDROID)
 #endif
 
 #include "utility/juce_PluginHostType.h"
