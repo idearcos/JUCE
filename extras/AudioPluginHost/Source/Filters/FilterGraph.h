@@ -40,10 +40,10 @@ class FilterGraph   : public FileBasedDocument,
 public:
     //==============================================================================
     FilterGraph (AudioPluginFormatManager&);
-    ~FilterGraph();
+    ~FilterGraph() override;
 
     //==============================================================================
-    typedef AudioProcessorGraph::NodeID NodeID;
+    using NodeID = AudioProcessorGraph::NodeID;
 
     void addPlugin (const PluginDescription&, Point<double>);
 
@@ -88,7 +88,7 @@ private:
     AudioPluginFormatManager& formatManager;
     OwnedArray<PluginWindow> activePluginWindows;
 
-    NodeID lastUID = 0;
+    NodeID lastUID;
     NodeID getNextUID() noexcept;
 
     void createNodeFromXml (const XmlElement& xml);
